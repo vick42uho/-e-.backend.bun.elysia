@@ -15,15 +15,22 @@ datasource db {
 }
 
 model Product {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   price       Int
   description String?
   isbn        String?
-  image       String?
+  image       String? // รูปภาพหลัก (เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม)
+  images      String[] // รายการรูปภาพทั้งหมด (สูงสุด 10 รูป)
   category    String?
-  createdAt   DateTime? @default(now())
-  updatedAt   DateTime? @updatedAt
+  stock       Int           @default(0) // จำนวนสินค้าคงเหลือ
+  viewCount   Int           @default(0) // จำนวนการเข้าชมสินค้า
+  salesCount  Int           @default(0) // จำนวนการขายสินค้า
+  rating      Float         @default(0) // คะแนนความนิยม (0-5)
+  carts       Cart[] // 1 เล่มอยู่ได้หลายตะกร้า one to many
+  OrderDetail OrderDetail[]
+  createdAt   DateTime?     @default(now())
+  updatedAt   DateTime?     @updatedAt
 }
 
 model Category {
@@ -44,10 +51,51 @@ model Admin {
   updatedAt DateTime? @updatedAt
 }
 
-model Cart {
+model Member {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String
-  productId String
+  name      String
+  phone     String
+  email     String?
+  username  String    @unique
+  password  String
+  address   String?
+  status    String    @default("active") // active, inactive
+  Orders    Order[]
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
+}
+
+model Cart {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  memberId  String
+  productId String  @db.ObjectId // เพิ่มเป็น ObjectId
+  qty       Int
+  product   Product @relation(fields: [productId], references: [id]) // 1 ตะกร้ามี 1 เล่ม many to one
+}
+
+model Order {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  memberId        String        @db.ObjectId
+  orderNo         String        @default("")
+  slipImage       String
+  status          String        @default("") // cancel, paid, transfer
+  trackCode       String        @default("")
+  express         String        @default("")
+  remark          String        @default("")
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  OrderDetail     OrderDetail[]
+  createdAt       DateTime
+  Member          Member        @relation(fields: [memberId], references: [id])
+}
+
+model OrderDetail {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @db.ObjectId
+  Product   Product @relation(fields: [productId], references: [id])
+  price     Int
+  qty       Int
+  orderId   String  @db.ObjectId
+  Order     Order   @relation(fields: [orderId], references: [id])
 }
